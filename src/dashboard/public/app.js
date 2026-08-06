@@ -93,6 +93,7 @@ function renderSidebar() {
 
   let html = `<div class="route-item" data-special="datasources"><span>🗄️</span><span class="route-path">数据源</span></div>`;
   html += `<div class="route-item" data-special="keys"><span>🔑</span><span class="route-path">API 密钥管理</span></div>`;
+  html += `<div class="route-item" data-special="security"><span>🔒</span><span class="route-path">安全态势</span></div>`;
   for (const [tag, list] of Object.entries(tags)) {
     html += `<div class="tag-group"><div class="tag-title">${tag}</div>`;
     for (const r of list) {
@@ -115,6 +116,7 @@ function renderSidebar() {
   );
   $('.route-item[data-special="datasources"]').addEventListener('click', () => renderDatasources());
   $('.route-item[data-special="keys"]').addEventListener('click', () => renderKeys());
+  $('.route-item[data-special="security"]').addEventListener('click', () => renderSecurity());
 }
 
 /* ----------------------------- 概览 ----------------------------- */
@@ -128,6 +130,7 @@ function renderOverview() {
       <div class="card"><div class="n">${m.counts.mocked}</div><div class="l">Mock 中</div></div>
       <div class="card"><div class="n">${m.keys.length}</div><div class="l">API Key</div></div>
       <div class="card"><div class="n">${m.versions.join(', ')}</div><div class="l">版本</div></div>
+      <div class="card"><div class="n">${m.counts.security ? '✓ 达标' : '⚠ 待加固'}</div><div class="l">安全防护</div></div>
     </div>
     <div class="section">
       <h3>设计理念</h3>
@@ -459,7 +462,71 @@ function showPanel(name) {
   $('#route-detail').classList.toggle('hidden', name !== 'route-detail');
   $('#datasources-panel').classList.toggle('hidden', name !== 'datasources-panel');
   $('#keys-panel').classList.toggle('hidden', name !== 'keys-panel');
+  $('#security-panel').classList.toggle('hidden', name !== 'security-panel');
   if (name === 'overview') renderOverview();
+}
+
+/* ----------------------------- 安全态势 ----------------------------- */
+async function renderSecurity() {
+  showPanel('security-panel');
+  let p;
+  try {
+    p = await api('/__meta/security');
+  } catch (e) {
+    $('#security-panel').innerHTML = `<h2>安全态势</h2><p style="color:var(--danger)">加载失败：${e.message}</p>`;
+    return;
+  }
+  const scoreBadge =
+    p.score === 'good'
+      ? '<span class="badge ok">达标</span>'
+      : '<span class="badge warn">待加固</span>';
+
+  const corsText =
+    p.cors.mode === 'allowlist'
+      ? `白名单（${p.cors.origins.length} 个来源）`
+      : p.cors.mode === 'disabled'
+      ? '已关闭'
+      : '反射任意源 ⚠';
+
+  const grl = p.globalRateLimit.enabled
+    ? `${p.globalRateLimit.max} 次 / ${(p.globalRateLimit.windowMs / 1000).toFixed(0)}s`
+    : '未开启 ⚠';
+  const timeout = p.requestTimeoutMs ? `${(p.requestTimeoutMs / 1000).toFixed(0)}s` : '未设置 ⚠';
+
+  const headerRows = Object.entries(p.headers.list)
+    .map(
+      ([k, v]) =>
+        `<div class="kv"><code>${k}</code><span style="color:var(--muted)">${v}</span></div>`
+    )
+    .join('');
+
+  const warnHtml = p.warnings.length
+    ? `<div class="section"><h3>⚠ 加固建议</h3>${p.warnings
+        .map((w) => `<div class="card-row warn-row">${w}</div>`)
+        .join('')}</div>`
+    : '<p style="color:var(--muted)">未检测到明显风险项。</p>';
+
+  $('#security-panel').innerHTML = `
+    <h2>安全态势 ${scoreBadge}</h2>
+    <div class="cards" style="margin-bottom:14px">
+      <div class="card"><div class="n">${p.headers.enabled ? '✓' : '✗'}</div><div class="l">安全响应头</div></div>
+      <div class="card"><div class="n">${corsText.includes('⚠') ? '⚠' : '✓'}</div><div class="l">CORS</div></div>
+      <div class="card"><div class="n">${p.globalRateLimit.enabled ? '✓' : '⚠'}</div><div class="l">全局限流</div></div>
+      <div class="card"><div class="n">${p.requestTimeoutMs ? '✓' : '⚠'}</div><div class="l">请求超时</div></div>
+    </div>
+
+    <div class="section"><h3>防护配置</h3>
+      <div class="kv"><code>CORS</code><span>${corsText}${p.cors.credentials ? '（带凭证）' : ''}</span></div>
+      <div class="kv"><code>请求体上限</code><span>${(p.bodyLimit / 1048576).toFixed(2)} MB</span></div>
+      <div class="kv"><code>全局限流</code><span>${grl}</span></div>
+      <div class="kv"><code>请求超时</code><span>${timeout}</span></div>
+      <div class="kv"><code>代理信任</code><span>${p.trustProxy ? '已开启' : '未开启'}</span></div>
+    </div>
+
+    <div class="section"><h3>生效的响应头</h3>${headerRows}</div>
+
+    ${warnHtml}
+  `;
 }
 
 checkGate();

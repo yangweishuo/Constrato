@@ -1,5 +1,4 @@
 import Fastify, { type FastifyInstance } from 'fastify';
-import cors from '@fastify/cors';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { registry } from './registry.js';
@@ -9,6 +8,7 @@ import { store } from './store.js';
 import { generateMock } from './mock.js';
 import { resolveKey, satisfiesScopes, clientFingerprint } from './auth.js';
 import { connectDatabases, type DatabaseConfig } from './database.js';
+import { applySecurity, resolveBodyLimit, summarizeSecurity, type SecurityConfig } from './security.js';
 
 export interface ConstratoOptions {
   /** 业务服务集合，会注入到每个 handler 的 ctx.services */
@@ -16,6 +16,8 @@ export interface ConstratoOptions {
   logger?: boolean;
   /** 数据源配置（多类型数据库连接）。启动时自动连接，并注入 ctx.services.databases */
   databases?: DatabaseConfig[];
+  /** 安全防护配置（响应头 / CORS / 限流 / 超时等）。 */
+  security?: SecurityConfig;
 }
 
 /** 把 zod 单部位 schema 转成 Fastify 可用的 JSON Schema（内联 $ref，避免解析问题）。 */
@@ -57,13 +59,24 @@ function hitRateLimit(key: string, max: number, windowMs: number): boolean {
 }
 
 export async function buildServer(opts: ConstratoOptions = {}): Promise<FastifyInstance> {
-  const app = Fastify({ logger: opts.logger ?? false });
+  const app = Fastify({
+    logger: opts.logger ?? false,
+    bodyLimit: resolveBodyLimit(opts.security),
+  });
 
-  await app.register(cors, { origin: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'] });
+  // 安全防护：响应头 / CORS / 全局限流 / 请求超时 / 代理信任
+  await applySecurity(app, opts.security ?? {});
+  (app as any).constrato = {
+    ...((app as any).constrato ?? {}),
+    security: summarizeSecurity(opts.security ?? {}),
+  };
 
   // 启动时连接数据源（配置驱动，优雅降级：连接失败不会阻断服务启动）
   const dbBundle = await connectDatabases(opts.databases ?? []);
-  (app as any).constrato = { databases: dbBundle.handles };
+  (app as any).constrato = {
+    ...((app as any).constrato ?? {}),
+    databases: dbBundle.handles,
+  };
   const services: Record<string, any> = {
     ...(opts.services ?? {}),
     databases: dbBundle.handles,

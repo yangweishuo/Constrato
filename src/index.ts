@@ -3,6 +3,7 @@ import { mountDashboard } from './dashboard/index.js';
 import { store } from './core/store.js';
 import { registry } from './core/registry.js';
 import { databases } from './config/databases.js';
+import { security } from './config/security.js';
 import './contracts/index.js'; // 副作用：注册所有契约路由
 
 const PORT = Number(process.env.PORT || 3000);
@@ -13,7 +14,7 @@ async function main() {
   const adminKey = await store.adminKey();
 
   // 2) 用已注册的契约 + 数据源配置构建 Fastify 服务
-  const app = await buildServer({ logger: false, databases });
+  const app = await buildServer({ logger: false, databases, security });
 
   // 3) 挂载仪表盘 + /__meta 管理接口
   await mountDashboard(app);
