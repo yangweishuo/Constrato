@@ -1,0 +1,45 @@
+{
+  "name": "constrato",
+  "version": "0.1.0",
+  "description": "用前端契约驱动后端 —— 仪表盘 + 接口管理一体化的全栈开发新模式",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "keywords": [
+    "typescript",
+    "fullstack",
+    "api",
+    "contract-first",
+    "dashboard",
+    "fastify",
+    "zod"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "fastify": "^4.28.1",
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.5"
+  },
+  "optionalDependencies": {
+    "@clickhouse/client": "^1.4.0",
+    "better-sqlite3": "^11.3.0",
+    "mongodb": "^6.8.0",
+    "mssql": "^10.0.0",
+    "mysql2": "^3.11.0",
+    "pg": "^8.22.0",
+    "redis": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Constrato · 接口仪表盘</title>
+  <link rel="stylesheet" href="/dashboard/style.css" />
+</head>
+<body>
+  <div id="admin-gate" class="gate hidden">
+    <div class="gate-card">
+      <h1>Constrato 控制台</h1>
+      <p>请输入启动时终端打印的 <code>x-admin-key</code> 以进入管理后台。</p>
+      <input id="admin-key-input" type="text" placeholder="x-admin-key" />
+      <button id="admin-key-btn">进入</button>
+      <p class="hint">密钥仅保存在浏览器 localStorage，用于调用 /__meta 管理接口。</p>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div class="brand">⚡ Constrato<span>前端定义契约 · 后端自动生成</span></div>
+      <div class="topbar-right">
+        <span id="stat" class="stat"></span>
+        <input id="api-key-input" type="text" placeholder="调试用 x-api-key（可选）" />
+        <button id="refresh-btn">刷新</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-head">接口（按标签）</div>
+        <div id="route-list"></div>
+      </aside>
+
+      <main class="content">
+        <div id="overview" class="panel"></div>
+        <div id="route-detail" class="panel hidden"></div>
+        <div id="datasources-panel" class="panel hidden"></div>
+        <div id="keys-panel" class="panel hidden"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="/dashboard/app.js"></script>
+</body>
+</html>
